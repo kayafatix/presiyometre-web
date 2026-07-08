@@ -387,48 +387,45 @@
         var tableRows = element.querySelectorAll('.data-table tbody tr').length;
         var chartContainers = element.querySelectorAll('.chart-container');
         var originalHeights = [];
-        var chartSection = element.querySelector('.chart-section');
         var originalFontSize = '';
+        var dataTable = element.querySelector('.data-table');
 
         if (tableRows > 15) {
-            // Uzun tablo: grafikleri daralt
             chartContainers.forEach(function(c) {
                 originalHeights.push(c.style.height);
-                c.style.height = '140px';
+                c.style.height = '130px';
             });
-            // Tablo fontunu küçült
-            var dataTable = element.querySelector('.data-table');
             if (dataTable) {
                 originalFontSize = dataTable.style.fontSize;
-                dataTable.style.fontSize = '6.5pt';
+                dataTable.style.fontSize = '6pt';
             }
         } else if (tableRows > 12) {
-            // Orta uzunluk: grafikleri biraz daralt
             chartContainers.forEach(function(c) {
                 originalHeights.push(c.style.height);
-                c.style.height = '170px';
+                c.style.height = '160px';
             });
+            if (dataTable) {
+                originalFontSize = dataTable.style.fontSize;
+                dataTable.style.fontSize = '7pt';
+            }
         }
 
         var opt = {
-            margin: [3, 3, 3, 3],
+            margin: [2, 2, 2, 2],
             filename: filename,
             image: { type: 'jpeg', quality: 0.92 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 800 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            pagebreak: { mode: ['none'] }
         };
 
         html2pdf().set(opt).from(element).save().then(function() {
             toolbars.forEach(function(t){ t.style.display = ''; });
-            // Grafik yüksekliklerini geri al
             chartContainers.forEach(function(c, i) {
                 if (originalHeights[i]) c.style.height = originalHeights[i];
             });
-            // Tablo fontunu geri al
-            if (originalFontSize !== undefined) {
-                var dataTable = element.querySelector('.data-table');
-                if (dataTable) dataTable.style.fontSize = originalFontSize;
+            if (dataTable && originalFontSize !== undefined) {
+                dataTable.style.fontSize = originalFontSize;
             }
         });
     }
@@ -450,18 +447,23 @@
             var saved = { charts: [], fontSize: dataTable ? dataTable.style.fontSize : '' };
 
             if (tableRows > 15) {
-                charts.forEach(function(c) { saved.charts.push(c.style.height); c.style.height = '140px'; });
-                if (dataTable) dataTable.style.fontSize = '6.5pt';
+                charts.forEach(function(c) { saved.charts.push(c.style.height); c.style.height = '130px'; });
+                if (dataTable) dataTable.style.fontSize = '6pt';
             } else if (tableRows > 12) {
-                charts.forEach(function(c) { saved.charts.push(c.style.height); c.style.height = '170px'; });
+                charts.forEach(function(c) { saved.charts.push(c.style.height); c.style.height = '160px'; });
+                if (dataTable) dataTable.style.fontSize = '7pt';
+            } else {
+                charts.forEach(function(c) { saved.charts.push(c.style.height); });
             }
             originals.push(saved);
         });
 
-        // Tüm föyleri içeren bir wrapper oluştur
+        // Her föyü ayrı ayrı PDF sayfası olarak oluştur
         var wrapper = document.createElement('div');
         allFoys.forEach(function(foy, i) {
             var clone = foy.cloneNode(true);
+            // Toolbar'ları clone'dan da kaldır
+            clone.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.remove(); });
             if (i < allFoys.length - 1) {
                 clone.style.pageBreakAfter = 'always';
             }
@@ -469,12 +471,12 @@
         });
 
         var opt = {
-            margin: [3, 3, 3, 3],
+            margin: [2, 2, 2, 2],
             filename: 'Presiyometre_Rapor_Tumu.pdf',
             image: { type: 'jpeg', quality: 0.92 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 800 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'], after: '.rapor-sayfa' }
+            pagebreak: { mode: ['css'], after: '[style*="page-break-after"]' }
         };
 
         html2pdf().set(opt).from(wrapper).save().then(function() {
