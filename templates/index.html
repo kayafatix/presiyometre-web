@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presiyometre Deney Raporu - Veri Girişi</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="form-container">
+        <h1>PRESİYOMETRE DENEY RAPORU</h1>
+        <h2>Pressuremeter Test Report — Veri Girişi</h2>
+
+        <form action="/rapor" method="POST" id="mainForm" enctype="multipart/form-data">
+            <!-- FİRMA / BAŞLIK BİLGİLERİ -->
+            <div class="form-section">
+                <h3>🏢 Firma / Rapor Başlığı</h3>
+
+                <div class="form-row">
+                    <div class="form-group wide">
+                        <label>Firma Adı</label>
+                        <input type="text" name="firma_adi" value="HAN İNŞAAT & MÜHENDİSLİK">
+                    </div>
+                    <div class="form-group">
+                        <label>Logo Değiştir (opsiyonel)</label>
+                        <input type="file" name="logo_dosya" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <!-- GENEL BİLGİLER -->
+            <div class="form-section">
+                <h3>📋 Proje Bilgileri</h3>
+
+                <div class="form-row">
+                    <div class="form-group wide">
+                        <label>Proje Adı / Project Name</label>
+                        <input type="text" name="proje_adi" placeholder="Örn: 706 ADA, 21 PARSEL, Darıca/Kocaeli" required>
+                    </div>
+                    <div class="form-group wide">
+                        <label>Müşteri Adı / Customer's Name</label>
+                        <input type="text" name="musteri_adi" placeholder="Örn: KILIÇ YAPI" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Proje Numarası / Project Number</label>
+                        <input type="text" name="proje_numarasi" placeholder="Opsiyonel">
+                    </div>
+                    <div class="form-group">
+                        <label>Sonda Çapı (mm) / Diameter of Probe</label>
+                        <input type="number" name="sonda_capi" value="76" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Sıfır Vol. Okumasındaki Hacim (cm³)</label>
+                        <input type="number" name="sifir_vol_hacim" value="535" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Manometre Yüksekliği (m)</label>
+                        <input type="number" name="manometre_yuksekligi" value="0.60" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Presiyometre Türü / Type</label>
+                        <input type="text" name="presiyometre_turu" value="Menard GC" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Deney Tarih / Date of Test</label>
+                        <input type="date" name="deney_tarih">
+                    </div>
+                </div>
+            </div>
+
+            <!-- KUYU ve DERİNLİK BİLGİLERİ -->
+            <div class="form-section">
+                <h3>🕳️ Kuyu ve Derinlik Bilgileri</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Kaç adet kuyu raporlanacak?</label>
+                        <input type="number" id="kuyuSayisi" min="1" max="10" value="1" 
+                               onchange="generateKuyuFields()" oninput="generateKuyuFields()">
+                    </div>
+                    <div class="form-group wide">
+                        <p style="font-size:0.82em; color:#7f8c8d; margin-top:18px; line-height:1.4;">
+                            Kuyu sayısını belirleyin → Her kuyu için derinlikleri virgülle girin → Otomatik max basınç alanları açılacak.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="kuyuContainer"></div>
+
+                <!-- Toplam rapor sayısı -->
+                <div id="raporOzet" class="rapor-ozet" style="display:none;">
+                    <strong>Toplam oluşturulacak rapor sayısı: <span id="toplamRapor">0</span></strong>
+                </div>
+            </div>
+
+            <!-- FOOTER / İMZA BİLGİLERİ -->
+            <div class="form-section">
+                <h3>✍️ Rapor Alt Bilgisi (Footer)</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sorumlu Adı Soyadı</label>
+                        <input type="text" name="sorumlu_adi" value="Yahya Kaya">
+                    </div>
+                    <div class="form-group">
+                        <label>Unvan</label>
+                        <input type="text" name="sorumlu_unvan" value="Jeoloji Mühendisi">
+                    </div>
+                    <div class="form-group">
+                        <label>Oda Sicil No</label>
+                        <input type="text" name="sicil_no" value="Oda Sicil No: 18190">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group wide">
+                        <label>Adres</label>
+                        <input type="text" name="adres" value="Yeni mh. Fatih cd. 5107. sk. No:1 D:6  Çayırova/KOCAELİ">
+                    </div>
+                    <div class="form-group wide">
+                        <label>İletişim (Gsm / E-mail)</label>
+                        <input type="text" name="iletisim" value="Gsm: 0530 208 65 58 E-mail: yahyakaya58@hotmail.com">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-generate">Raporları Oluştur</button>
+        </form>
+    </div>
+
+    <script>
+        function generateKuyuFields() {
+            const sayi = parseInt(document.getElementById('kuyuSayisi').value) || 1;
+            const container = document.getElementById('kuyuContainer');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= sayi; i++) {
+                const div = document.createElement('div');
+                div.className = 'kuyu-block';
+                div.innerHTML = `
+                    <div class="kuyu-header">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Kuyu ${i} - Adı</label>
+                                <input type="text" name="kuyu_${i}_adi" value="SK-${i}" required>
+                            </div>
+                            <div class="form-group wide">
+                                <label>Deney Derinlikleri (m) — virgülle ayırın</label>
+                                <input type="text" name="kuyu_${i}_derinlikler" 
+                                       placeholder="Örn: 3, 6, 9, 12, 15" required
+                                       oninput="generateBasincFields(${i}); updateRaporSayisi();"
+                                       id="derinlik_${i}">
+                            </div>
+                        </div>
+                        <div class="form-row" id="basinc_container_${i}">
+                            <div class="form-group wide">
+                                <label style="color:#888; font-size:0.8em;">Yukarıya derinlikleri girdikten sonra her derinlik için max basınç alanları oluşacak</label>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+
+            // Hidden input for kuyu sayısı
+            let hiddenInput = document.getElementById('kuyuSayisiHidden');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = 'kuyuSayisiHidden';
+                hiddenInput.name = 'kuyu_sayisi';
+                container.appendChild(hiddenInput);
+            }
+            hiddenInput.value = sayi;
+
+            updateRaporSayisi();
+        }
+
+        function generateBasincFields(kuyuIdx) {
+            const derinlikInput = document.getElementById(`derinlik_${kuyuIdx}`);
+            const container = document.getElementById(`basinc_container_${kuyuIdx}`);
+            const derinlikler = derinlikInput.value.split(',').filter(d => d.trim() !== '');
+            
+            if (derinlikler.length === 0) {
+                container.innerHTML = `<div class="form-group wide">
+                    <label style="color:#888; font-size:0.8em;">Yukarıya derinlikleri girdikten sonra her derinlik için max basınç alanları oluşacak</label>
+                </div>`;
+                return;
+            }
+
+            let html = '<label style="font-size:0.85em; font-weight:600; color:#555; margin-bottom:5px; display:block;">Her derinlik için Max Deney Basıncı (bar):</label><div class="form-row" style="flex-wrap:wrap; gap:8px;">';
+            
+            derinlikler.forEach((d, idx) => {
+                const depth = d.trim();
+                html += `
+                    <div class="form-group" style="min-width:100px; flex:0 0 auto;">
+                        <label style="font-size:0.75em; text-align:center;">${depth} m</label>
+                        <input type="number" name="kuyu_${kuyuIdx}_basinc_${idx}" 
+                               value="20" min="5" max="60" style="width:80px; text-align:center;" required>
+                    </div>`;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function updateRaporSayisi() {
+            const sayi = parseInt(document.getElementById('kuyuSayisi').value) || 1;
+            let toplam = 0;
+
+            for (let i = 1; i <= sayi; i++) {
+                const input = document.querySelector(`[name="kuyu_${i}_derinlikler"]`);
+                if (input && input.value.trim()) {
+                    const derinlikler = input.value.split(',').filter(d => d.trim() !== '');
+                    toplam += derinlikler.length;
+                }
+            }
+
+            const ozetDiv = document.getElementById('raporOzet');
+            const toplamSpan = document.getElementById('toplamRapor');
+            if (toplam > 0) {
+                ozetDiv.style.display = 'block';
+                toplamSpan.textContent = toplam;
+            } else {
+                ozetDiv.style.display = 'none';
+            }
+        }
+
+        // Sayfa yüklendiğinde ilk kuyu alanını oluştur
+        generateKuyuFields();
+    </script>
+</body>
+</html>

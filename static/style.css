@@ -1,0 +1,514 @@
+/* ===== GENEL SAYFA AYARLARI ===== */
+@page {
+    size: A4;
+    margin: 5mm 5mm 3mm 5mm;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 10pt;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+    min-height: 100vh;
+}
+
+/* ===== RAPOR SAYFASI ===== */
+.rapor-sayfa {
+    width: 200mm;
+    min-height: 287mm;
+    margin: 10mm auto;
+    padding: 5mm;
+    padding-bottom: 20px;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.sayfa-altbilgi {
+    position: absolute;
+    bottom: 5px;
+    left: 5mm;
+    right: 5mm;
+    text-align: center;
+    font-size: 7.5pt;
+    font-weight: bold;
+    border-top: 1px solid #000;
+    padding-top: 2px;
+}
+
+.sayfa-imza {
+    position: absolute;
+    bottom: 30px;
+    right: 15mm;
+    text-align: center;
+    font-size: 10pt;
+    line-height: 1.3;
+}
+
+@media print {
+    body { background: white; }
+    .rapor-sayfa {
+        width: 100%;
+        margin: 0;
+        padding: 5mm;
+        box-shadow: none;
+        page-break-after: always;
+    }
+    .no-print { display: none !important; }
+}
+
+
+/* ===== BAŞLIK KISMI ===== */
+.header-section {
+    display: flex;
+    align-items: center;
+    border: 1px solid #000;
+    margin-bottom: 0;
+}
+
+.header-logo {
+    width: 80px;
+    padding: 5px;
+    border-right: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-logo img {
+    max-width: 70px;
+    max-height: 45px;
+}
+
+.header-title {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+}
+
+.header-title .tr-title {
+    font-size: 14pt;
+    font-weight: bold;
+}
+
+.header-title .firma-adi {
+    font-size: 12pt;
+    font-weight: bold;
+    font-style: italic;
+    margin-bottom: 2px;
+}
+
+.header-title .en-title {
+    font-size: 10pt;
+    font-style: italic;
+    color: #333;
+}
+
+/* ===== BİLGİ TABLOSU ===== */
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+
+.info-table td {
+    border: 1px solid #000;
+    padding: 1px 3px;
+    vertical-align: middle;
+    height: 18px;
+}
+
+.info-table .label-cell {
+    background-color: #FFE4C4;
+    font-style: italic;
+    width: 15%;
+}
+
+.info-table .label-cell .tr-text {
+    font-weight: bold;
+    font-size: 8pt;
+    display: block;
+}
+
+.info-table .label-cell .en-text {
+    font-size: 7pt;
+    font-style: italic;
+    color: #555;
+    display: block;
+}
+
+.info-table .value-cell {
+    text-align: center;
+    font-size: 9pt;
+}
+
+.info-table .value-cell.bold {
+    font-weight: bold;
+    font-size: 10pt;
+}
+
+/* ===== VERİ TABLOSU ===== */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+
+.data-table th,
+.data-table td {
+    border: 1px solid #000;
+    text-align: center;
+    vertical-align: middle;
+    padding: 2px 3px;
+}
+
+.data-table thead th {
+    background-color: #FFFFCC;
+    font-size: 7pt;
+    font-weight: bold;
+    font-style: italic;
+    height: 32px;
+    padding: 1px 2px;
+}
+
+.data-table thead th .tr-text {
+    font-weight: bold;
+    font-size: 8pt;
+    display: block;
+}
+
+.data-table thead th .en-text {
+    font-weight: normal;
+    font-size: 7pt;
+    font-style: italic;
+    color: #555;
+    display: block;
+}
+
+.data-table thead .unit-row th {
+    height: 14px;
+    font-size: 7pt;
+    font-weight: normal;
+    font-style: italic;
+}
+
+.data-table tbody td {
+    height: 12px;
+    font-size: 7.5pt;
+    padding: 0px 2px;
+}
+
+.data-table tbody td.kademe {
+    font-weight: bold;
+    background-color: #f9f9f9;
+}
+
+/* ===== BELİRLENEN DEĞERLER ===== */
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2px;
+}
+
+.results-table td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    text-align: center;
+    vertical-align: middle;
+    height: 26px;
+}
+
+.results-table .result-label {
+    background-color: #FFFFCC;
+    font-size: 8pt;
+    font-weight: bold;
+    font-style: italic;
+}
+
+.results-table .result-value {
+    font-size: 11pt;
+    font-weight: bold;
+}
+
+.results-table .section-title {
+    text-align: left;
+    font-size: 9pt;
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* ===== GRAFİK ALANI ===== */
+.chart-section {
+    margin-top: 3px;
+    border: 1px solid #ccc;
+    padding: 3px;
+}
+
+.chart-section .chart-title {
+    text-align: center;
+    font-size: 9pt;
+    font-weight: bold;
+    font-style: italic;
+    margin-bottom: 5px;
+}
+
+.chart-container {
+    width: 100%;
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-style: italic;
+}
+
+/* ===== ALT HESAPLAMA ===== */
+.bottom-calc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2px;
+}
+
+.bottom-calc-table td {
+    border: 1px solid #000;
+    padding: 3px 5px;
+    text-align: center;
+    vertical-align: middle;
+    height: 22px;
+    font-size: 8pt;
+}
+
+.bottom-calc-table .calc-label {
+    background-color: #FFFFCC;
+    font-weight: bold;
+    font-style: italic;
+}
+
+.bottom-calc-table .calc-value {
+    font-size: 10pt;
+    font-weight: bold;
+}
+
+/* ===== ALT NOTLAR ===== */
+.footer-notes {
+    margin-top: 3px;
+    font-size: 6.5pt;
+    font-style: italic;
+    color: #333;
+    line-height: 1.2;
+    border-top: 1px solid #000;
+    padding-top: 2px;
+}
+
+/* ===== FOOTER TABLOSU ===== */
+.footer-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 3px;
+}
+
+.footer-table td {
+    border: none;
+    padding: 2px 5px;
+    vertical-align: middle;
+}
+
+.footer-table .footer-empty {
+    width: 25%;
+}
+
+.footer-table .footer-signature {
+    text-align: center;
+    font-size: 10pt;
+    line-height: 1.3;
+}
+
+.footer-table .footer-address {
+    text-align: center;
+    font-size: 8pt;
+    font-weight: bold;
+    line-height: 1.3;
+}
+
+/* ===== GİRİŞ FORMU ===== */
+.form-container {
+    max-width: 940px;
+    margin: 30px auto;
+    background: white;
+    padding: 35px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    border-top: 4px solid #c0392b;
+}
+
+.form-container h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 4px;
+    font-size: 1.7em;
+    letter-spacing: 0.5px;
+}
+
+.form-container h2 {
+    text-align: center;
+    color: #999;
+    font-weight: normal;
+    font-style: italic;
+    margin-bottom: 30px;
+    font-size: 0.95em;
+}
+
+.form-section {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: #fafbfc;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.form-section h3 {
+    color: #2c3e50;
+    margin: -20px -20px 18px -20px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    border-radius: 7px 7px 0 0;
+    font-size: 0.95em;
+    letter-spacing: 0.3px;
+}
+
+.form-row {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.form-group.wide {
+    flex: 2;
+    min-width: 280px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.82em;
+    color: #555;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.92em;
+    font-family: 'Segoe UI', 'Times New Roman', serif;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-group input[type="file"] {
+    padding: 7px 10px;
+    font-size: 0.85em;
+    border-style: dashed;
+    background: #f8f9fa;
+    cursor: pointer;
+}
+
+.form-group input::placeholder {
+    color: #bbb;
+    font-style: italic;
+}
+
+.btn-generate {
+    display: block;
+    margin: 30px auto 0;
+    background: linear-gradient(135deg, #27ae60, #219a52);
+    color: white;
+    border: none;
+    padding: 14px 55px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+    letter-spacing: 0.5px;
+}
+
+.btn-generate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.btn-generate:active {
+    transform: translateY(0);
+}
+
+.btn-print {
+    display: inline-block;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    border: none;
+    padding: 10px 28px;
+    font-size: 0.95em;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #1a252f, #2c3e50);
+}
+
+/* ===== KUYU BLOKLARI ===== */
+.kuyu-block {
+    background: white;
+    border: 1.5px solid #e0e0e0;
+    border-left: 4px solid #3498db;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.kuyu-block:hover {
+    border-left-color: #2980b9;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+}
+
+.kuyu-block .form-row {
+    margin-bottom: 8px;
+}
+
+.rapor-ozet {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    border: 1px solid #28a745;
+    border-radius: 6px;
+    padding: 14px 20px;
+    margin-top: 15px;
+    text-align: center;
+    font-size: 1.05em;
+    color: #155724;
+    font-weight: 500;
+}

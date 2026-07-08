@@ -1,0 +1,633 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Presiyometre Deney Raporu - {{ toplam }} Föy</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.3.0/dist/chartjs-plugin-dragdata.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        .edit-toolbar {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .edit-toolbar button {
+            padding: 4px 14px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .btn-edit {
+            background: #3498db;
+            color: white;
+        }
+        .btn-edit:hover { background: #2980b9; }
+        .btn-save {
+            background: #27ae60;
+            color: white;
+            display: none;
+        }
+        .btn-save:hover { background: #219a52; }
+        .btn-cancel {
+            background: #e74c3c;
+            color: white;
+            display: none;
+        }
+        .btn-cancel:hover { background: #c0392b; }
+        .drag-tooltip {
+            position: fixed;
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-size: 9pt;
+            font-family: monospace;
+            pointer-events: none;
+            display: none;
+            z-index: 9999;
+            white-space: nowrap;
+        }
+        .edit-active canvas {
+            cursor: grab;
+        }
+        .chart-left-wrap,
+        .chart-right-wrap {
+            min-width: 0;
+            overflow: hidden;
+        }
+        .chart-section.edit-active {
+            background: #f0f8ff;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .chart-section.edit-active .chart-container {
+            height: 400px !important;
+        }
+        .chart-section.edit-active .chart-right-wrap {
+            /* Sağ grafik edit modunda da görünür kalır */
+        }
+        .chart-section.edit-active .chart-left-wrap {
+            /* Oranlar korunur, modal büyüklüğü yeterli */
+        }
+        .table-edit-toolbar {
+            text-align: right;
+            margin-bottom: 3px;
+        }
+        .table-edit-toolbar button {
+            padding: 3px 10px;
+            margin: 0 3px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 7.5pt;
+            font-weight: bold;
+        }
+        .editable-cell {
+            background: #fffde7 !important;
+            cursor: text;
+        }
+        .editable-cell:focus {
+            outline: 2px solid #3498db;
+            background: #e3f2fd !important;
+        }
+        @media print {
+            .edit-toolbar { display: none !important; }
+            .drag-tooltip { display: none !important; }
+            .foy-toolbar { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Yazdırma / PDF Butonu -->
+    <div class="no-print" style="text-align:center; padding:12px 20px; background:linear-gradient(135deg, #2c3e50, #34495e); color:white; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+        <span style="margin-right:25px; font-size:0.95em;">📄 Toplam <strong>{{ toplam }}</strong> rapor föyü oluşturuldu</span>
+        <button class="btn-print" onclick="downloadAllPDF()" style="display:inline-block; margin:0; background:#e74c3c;">📥 Tümünü PDF İndir</button>
+        <a href="/" style="margin-left:25px; color:#bdc3c7; text-decoration:none; font-size:0.9em;">← Geri Dön</a>
+    </div>
+
+    {% for data in raporlar %}
+    <div class="rapor-sayfa" id="foy_{{ loop.index }}">
+        <!-- Föy Kaydetme Toolbar -->
+        <div class="foy-toolbar no-print" style="text-align:right; margin-bottom:3px;">
+            <button onclick="downloadFoyPDF({{ loop.index }}, '{{ data.kuyu_no }}', '{{ data.deney_derinligi }}')" style="padding:3px 10px; font-size:7.5pt; background:#e74c3c; color:white; border:none; border-radius:3px; cursor:pointer;">📥 PDF İndir</button>
+        </div>
+        <!-- ===== BAŞLIK ===== -->
+        <div class="header-section">
+            <div class="header-logo">
+                <img src="{{ logo_url }}" alt="Logo">
+            </div>
+            <div class="header-title">
+                <div class="firma-adi">{{ firma_adi }}</div>
+                <div class="tr-title">PRESİYOMETRE DENEY RAPORU</div>
+                <div class="en-title">PRESSUREMETER TEST REPORT</div>
+            </div>
+        </div>
+
+        <!-- ===== BİLGİ TABLOSU ===== -->
+        <table class="info-table">
+            <tr>
+                <td class="label-cell">
+                    <span class="tr-text">Proje Adı</span>
+                    <span class="en-text">Project Name</span>
+                </td>
+                <td class="value-cell" colspan="3">{{ data.proje_adi }}</td>
+                <td class="label-cell">
+                    <span class="tr-text">Müşteri Adı</span>
+                    <span class="en-text">Customer's Name</span>
+                </td>
+                <td class="value-cell bold" colspan="3">{{ data.musteri_adi }}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">
+                    <span class="tr-text">Proje Numarası</span>
+                    <span class="en-text">Project Number</span>
+                </td>
+                <td class="value-cell">{{ data.proje_numarasi }}</td>
+                <td class="label-cell">
+                    <span class="tr-text">Sonda Çapı (mm)</span>
+                    <span class="en-text">Diameter of Probe</span>
+                </td>
+                <td class="value-cell">{{ data.sonda_capi }}</td>
+                <td class="label-cell" colspan="2">
+                    <span class="tr-text">Sıfır Vol. Okumasındaki Hacim (cm³)</span>
+                    <span class="en-text">Zero Volumeter Reading Corresponds to</span>
+                </td>
+                <td class="value-cell" colspan="2">{{ data.sifir_vol_hacim }}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">
+                    <span class="tr-text">Kuyu No.</span>
+                    <span class="en-text">Borehole Number</span>
+                </td>
+                <td class="value-cell">{{ data.kuyu_no }}</td>
+                <td class="label-cell">
+                    <span class="tr-text">Manometre Yüksekliği (m)</span>
+                    <span class="en-text">Height of Manometer</span>
+                </td>
+                <td class="value-cell">{{ data.manometre_yuksekligi }}</td>
+                <td class="label-cell" colspan="2">
+                    <span class="tr-text">Presiyometre Türü</span>
+                    <span class="en-text">Type of Pressuremeter</span>
+                </td>
+                <td class="value-cell" colspan="2">{{ data.presiyometre_turu }}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">
+                    <span class="tr-text">Deney Derinliği (m)</span>
+                    <span class="en-text">Test Depth</span>
+                </td>
+                <td class="value-cell bold">{{ data.deney_derinligi }}</td>
+                <td colspan="2"></td>
+                <td class="label-cell" colspan="2">
+                    <span class="tr-text">Deney Tarih</span>
+                    <span class="en-text">Date of Test</span>
+                </td>
+                <td class="value-cell" colspan="2">{{ data.deney_tarih }}</td>
+            </tr>
+        </table>
+
+        <!-- ===== VERİ TABLOSU ===== -->
+        <div class="table-edit-toolbar no-print">
+            <button type="button" class="btn-edit" onclick="enableTableEdit({{ loop.index }})">✏️ Tablo Düzenle</button>
+            <button type="button" class="btn-save" id="btnTableSave_{{ loop.index }}" onclick="saveTableEdit({{ loop.index }})">💾 Kaydet</button>
+            <button type="button" class="btn-cancel" id="btnTableCancel_{{ loop.index }}" onclick="cancelTableEdit({{ loop.index }})">✖ İptal</button>
+        </div>
+        <table class="data-table" id="dataTable_{{ loop.index }}">
+            <thead>
+                <tr>
+                    <th>
+                        <span class="tr-text">Kademe Artışı</span>
+                        <span class="en-text">Increment</span>
+                    </th>
+                    <th>
+                        <span class="tr-text">Deney Basıncı</span>
+                        <span class="en-text">Volumeter Pressure</span>
+                    </th>
+                    <th>
+                        <span class="tr-text">Hacim Ölçer Okuması</span>
+                        <span class="en-text">volumeter reading</span>
+                    </th>
+                    <th>
+                        <span class="tr-text">Hidrostatik Basınç Düzeltmesi</span>
+                        <span class="en-text">Hydrostatic Pressure</span>
+                    </th>
+                    <th>
+                        <span class="tr-text">Hacim Düzeltmesi</span>
+                        <span class="en-text">Volume Correction</span>
+                    </th>
+                    <th>
+                        <span class="tr-text">Düzeltilmiş Hacim</span>
+                        <span class="en-text">Corrected Volume</span>
+                    </th>
+                    <th>
+                        <span class="tr-text">Mebran Düzeltmesi</span>
+                        <span class="en-text">Membrane Correction</span>
+                    </th>
+                    <th>
+                        <span class="tr-text">Düzeltilmiş Basınç</span>
+                        <span class="en-text">Corrected Pressure</span>
+                    </th>
+                </tr>
+                <tr class="unit-row">
+                    <th></th>
+                    <th>bar</th>
+                    <th>cm³</th>
+                    <th>kg/cm²</th>
+                    <th>cm³</th>
+                    <th>cm³</th>
+                    <th>kg/cm²</th>
+                    <th>kg/cm²</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data.tablo %}
+                <tr>
+                    <td class="kademe">{{ row.kademe }}</td>
+                    <td>{{ row.basinc }}</td>
+                    <td>{{ row.hacim }}</td>
+                    <td>{{ row.hidrost }}</td>
+                    <td>{{ row.hacim_duz }}</td>
+                    <td>{{ row.duz_hacim }}</td>
+                    <td>{{ row.mebran_duz }}</td>
+                    <td>{{ row.duz_basinc }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- ===== BELİRLENEN DEĞERLER ===== -->
+        <table class="results-table">
+            <tr>
+                <td class="section-title" colspan="4">Belirlenen Değerler / Assessed Values</td>
+                <td class="result-label">Limit Basınç<br>PL* (kg/cm²)</td>
+                <td class="result-value">{{ data.sonuclar.limit_basinc }}</td>
+                <td class="result-label">Elastisite Modülü<br>EM (kg/cm²)</td>
+                <td class="result-value">{{ data.sonuclar.elastisite }}</td>
+            </tr>
+        </table>
+
+        <!-- ===== GRAFİK ALANI ===== -->
+        {% set max_bas = data.tablo[-1].basinc | float %}
+        <div class="chart-section {% if max_bas >= 10 %}page-break-chart{% endif %}" id="chartSection_{{ loop.index }}">
+            <div class="chart-title">DÜZELTİLMİŞ PRESİYOMETRE EĞRİSİ / Corrected Pressuremeter Curve</div>
+            <div class="edit-toolbar no-print">
+                <button type="button" class="btn-edit" onclick="enableEdit({{ loop.index }})">✏️ Düzenle</button>
+                <button type="button" class="btn-save" id="btnSave_{{ loop.index }}" onclick="saveEdit({{ loop.index }})">💾 Kaydet</button>
+                <button type="button" class="btn-cancel" id="btnCancel_{{ loop.index }}" onclick="cancelEdit({{ loop.index }})">✖ İptal</button>
+            </div>
+            <div style="display:flex; gap:10px; height:100%;">
+                {% set max_bas = data.tablo[-1].basinc | float %}
+                <div class="chart-container chart-left-wrap" style="height:220px; flex:2; position:relative;">
+                    <canvas id="chart_left_{{ loop.index }}"></canvas>
+                </div>
+                <div class="chart-container chart-right-wrap" style="height:220px; flex:1; position:relative;">
+                    <canvas id="chart_right_{{ loop.index }}"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ALT HESAPLAMA ===== -->
+        <table class="bottom-calc-table">
+            <tr>
+                <td class="calc-label">P₁ (kg/cm²)</td>
+                <td class="calc-value">{{ data.sonuclar.pi }}</td>
+                <td class="calc-label">V₁ (cm³)</td>
+                <td class="calc-value">{{ data.sonuclar.vi }}</td>
+                <td class="calc-label">ΔP (kg/cm²)</td>
+                <td class="calc-value">{{ data.sonuclar.delta_p }}</td>
+                <td class="calc-label">Net Limit Basınç (kg/cm²)</td>
+                <td class="calc-value">{{ data.sonuclar.net_limit }}</td>
+            </tr>
+            <tr>
+                <td class="calc-label">Pf (kg/cm²)</td>
+                <td class="calc-value">{{ data.sonuclar.pf }}</td>
+                <td class="calc-label">Vf (cm³)</td>
+                <td class="calc-value">{{ data.sonuclar.vf }}</td>
+                <td class="calc-label">ΔV (cm³)</td>
+                <td class="calc-value">{{ data.sonuclar.delta_v }}</td>
+                <td class="calc-label">E / Pl</td>
+                <td class="calc-value">{{ data.sonuclar.e_pl }}</td>
+            </tr>
+        </table>
+
+        <!-- ===== ALT NOTLAR ve FOOTER ===== -->
+        <div class="footer-notes">
+            <p>* Deney sonuçları firmamızın yazılı izni olmadan basılamaz ve çoğaltılamaz. (The tests results can not be reproduced in any form without the written permission of company)</p>
+            <p>* Deneyler ilgili firma tarafından belirlenen noktalarda yapılmıştır. (Tests were done on the destinations decided by the related firm.)</p>
+            <p>* Bu deney ASTM D 4719 standartlarına göre yapılmaktadır. (This test is being done according to the ASTM D 4719 standarts.)</p>
+        </div>
+
+        <div class="sayfa-imza">
+            <strong>{{ footer.sorumlu_adi }}</strong><br>
+            {{ footer.sorumlu_unvan }}<br>
+            {{ footer.sicil_no }}
+        </div>
+        <div class="sayfa-altbilgi">
+            {{ footer.adres }} | {{ footer.iletisim }}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Drag Tooltip -->
+    <div class="drag-tooltip" id="dragTooltip"></div>
+
+    <script>
+    const charts = {};
+    const chartsRight = {};
+    const originalData = {};
+    const editData = {};
+    const MEBRAN_HACIM = [15, 80, 140, 200, 250, 300, 350, 400, 480, 650];
+    const MEBRAN_BASINC = [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25];
+    const HACIM_DUZ_BASINC = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,20];
+    const HACIM_DUZ_DEGER = [0,1,1,2,3,4,5,6,6,7,8,9,8,7,8,10];
+
+    function saveSingleFoy(idx, kuyu, derinlik) {
+        // Tüm föyleri gizle, sadece seçileni göster
+        var allFoys = document.querySelectorAll('.rapor-sayfa');
+        var topBar = document.querySelector('[style*="sticky"]');
+        allFoys.forEach(function(f){ f.style.display = 'none'; });
+        topBar.style.display = 'none';
+        document.getElementById('foy_' + idx).style.display = 'block';
+        
+        // Dosya adı önerisi
+        var now = new Date();
+        var dd = String(now.getDate()).padStart(2,'0');
+        var mm = String(now.getMonth()+1).padStart(2,'0');
+        var yy = String(now.getFullYear()).slice(-2);
+        var filename = kuyu + '_' + derinlik + 'm_' + dd + '_' + mm + '_' + yy;
+        document.title = filename;
+        
+        // Yazdır
+        window.print();
+        
+        // Geri göster
+        allFoys.forEach(function(f){ f.style.display = ''; });
+        topBar.style.display = '';
+        document.title = 'Presiyometre Deney Raporu - {{ toplam }} Föy';
+    }
+
+    function downloadFoyPDF(idx, kuyu, derinlik) {
+        var element = document.getElementById('foy_' + idx);
+        var now = new Date();
+        var dd = String(now.getDate()).padStart(2,'0');
+        var mm = String(now.getMonth()+1).padStart(2,'0');
+        var yy = String(now.getFullYear()).slice(-2);
+        var filename = kuyu + '_' + derinlik + 'm_' + dd + '_' + mm + '_' + yy + '.pdf';
+
+        // Toolbar'ları geçici gizle
+        var toolbars = element.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar');
+        toolbars.forEach(function(t){ t.style.display = 'none'; });
+
+        var opt = {
+            margin: [5, 5, 5, 5],
+            filename: filename,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        html2pdf().set(opt).from(element).save().then(function() {
+            toolbars.forEach(function(t){ t.style.display = ''; });
+        });
+    }
+
+    function downloadAllPDF() {
+        var allFoys = document.querySelectorAll('.rapor-sayfa');
+        var topBar = document.querySelector('[style*="sticky"]');
+
+        // Toolbar'ları gizle
+        document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = 'none'; });
+        topBar.style.display = 'none';
+
+        // Tüm föyleri içeren bir wrapper oluştur
+        var wrapper = document.createElement('div');
+        allFoys.forEach(function(foy, i) {
+            var clone = foy.cloneNode(true);
+            if (i < allFoys.length - 1) {
+                clone.style.pageBreakAfter = 'always';
+            }
+            wrapper.appendChild(clone);
+        });
+
+        var opt = {
+            margin: [5, 5, 5, 5],
+            filename: 'Presiyometre_Rapor_Tumu.pdf',
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'], after: '.rapor-sayfa' }
+        };
+
+        html2pdf().set(opt).from(wrapper).save().then(function() {
+            document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = ''; });
+            topBar.style.display = '';
+        });
+    }
+
+    function interpolate(x, xT, yT) {
+        if (x <= xT[0]) return yT[0];
+        if (x >= xT[xT.length-1]) return yT[xT.length-1];
+        for (let i = 0; i < xT.length - 1; i++) {
+            if (xT[i] <= x && x <= xT[i+1]) return yT[i] + (x - xT[i]) / (xT[i+1] - xT[i]) * (yT[i+1] - yT[i]);
+        }
+        return yT[yT.length-1];
+    }
+
+    function createLeftChart(idx, data, pi, vi, pf, vf) {
+        var c = document.getElementById('chart_left_' + idx);
+        var p = c.parentNode;
+        p.removeChild(c);
+        var nc = document.createElement('canvas');
+        nc.id = 'chart_left_' + idx;
+        p.appendChild(nc);
+        charts[idx] = new Chart(nc.getContext('2d'), {
+            type: 'scatter',
+            data: { datasets: [
+                { label: 'Presiyometre Egrisi', data: data, borderColor: '#1a5276', backgroundColor: '#1a5276', borderWidth: 2, pointRadius: 2, pointHitRadius: 8, showLine: true, tension: 0.4, fill: false },
+                { label: 'Pi, Vi', data: [{x:pi,y:vi}], borderColor: '#e74c3c', backgroundColor: '#e74c3c', pointRadius: 7, pointStyle: 'triangle', showLine: false },
+                { label: 'Pf, Vf', data: [{x:pf,y:vf}], borderColor: '#f39c12', backgroundColor: '#f39c12', pointRadius: 7, pointStyle: 'triangle', showLine: false }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { font: { family: 'Times New Roman', size: 9 } } }, dragData: false },
+                scales: {
+                    x: { title: { display: true, text: 'Basinc, P (kg/cm2)', font: { family: 'Times New Roman', size: 10, style: 'italic' } },
+                        grid: { color: '#ddd' },
+                        ticks: { stepSize: 1, autoSkip: false, font: { size: 9 } },
+                        min: 0, max: Math.ceil(data[data.length-1].x) + 1 },
+                    y: { title: { display: true, text: 'Hacim, V (cm3)', font: { family: 'Times New Roman', size: 10, style: 'italic' } },
+                        grid: { color: '#ddd' },
+                        ticks: { stepSize: 100, autoSkip: false, includeBounds: true, font: { size: 9 } },
+                        min: 0, max: 600, afterBuildTicks: function(axis){ axis.ticks = [0,100,200,300,400,500,600].map(function(v){return {value:v};});} }
+                }
+            }
+        });
+    }
+
+    function createRightChart(idx, data, vi) {
+        var c = document.getElementById('chart_right_' + idx);
+        var p = c.parentNode;
+        p.removeChild(c);
+        var nc = document.createElement('canvas');
+        nc.id = 'chart_right_' + idx;
+        p.appendChild(nc);
+        var vLim = 2 * vi;
+        var n = data.length, last3 = data.slice(n-3);
+        var sX=0,sY=0,sXY=0,sX2=0;
+        last3.forEach(function(pt){sX+=pt.x;sY+=pt.y;sXY+=pt.x*pt.y;sX2+=pt.x*pt.x;});
+        var m=(3*sXY-sX*sY)/(3*sX2-sX*sX), b=(sY-m*sX)/3;
+        var pLim=m!==0?(vLim-b)/m:35, xMax=Math.max(35,pLim+5);
+        chartsRight[idx] = new Chart(nc.getContext('2d'), {
+            type: 'scatter',
+            data: { datasets: [
+                { label: 'V_lim='+Math.round(vLim), data: [{x:0,y:vLim},{x:xMax,y:vLim}], borderColor: '#f39c12', borderWidth: 2.5, pointRadius: 0, showLine: true, tension: 0, fill: false },
+                { label: 'Trend', data: [{x:last3[0].x,y:last3[0].y},{x:pLim,y:vLim}], borderColor: '#f39c12', borderWidth: 2, borderDash: [6,4], pointRadius: 0, showLine: true, tension: 0, fill: false },
+                { label: 'Son 3', data: last3, borderColor: '#1a5276', backgroundColor: '#1a5276', pointRadius: 2.3, showLine: false }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { font: { family: 'Times New Roman', size: 8 } } }, dragData: false },
+                scales: { x: { title: { display: true, text: 'P (kg/cm2)', font: { size: 9, style: 'italic' } }, min: 0, max: xMax }, y: { title: { display: true, text: 'V (cm3)', font: { size: 9, style: 'italic' } }, min: 100, max: Math.max(1000, vLim+100) } }
+            }
+        });
+    }
+
+    function rebuildCharts(idx, data) {
+        var piI=Math.min(3,data.length-1), pfI=Math.max(data.length-2,piI+1);
+        var pi=data[piI].x, vi=data[piI].y, pf=data[pfI].x, vf=data[pfI].y;
+        if(charts[idx]) charts[idx].destroy();
+        if(chartsRight[idx]) chartsRight[idx].destroy();
+        createLeftChart(idx, JSON.parse(JSON.stringify(data)), pi, vi, pf, vf);
+        createRightChart(idx, JSON.parse(JSON.stringify(data)), vi);
+    }
+
+    {% for data in raporlar %}
+    (function() {
+        var idx = {{ loop.index }};
+        var chartData = [{% for row in data.tablo %}{ x: {{ row.duz_basinc }}, y: {{ row.duz_hacim }} },{% endfor %}];
+        originalData[idx] = JSON.parse(JSON.stringify(chartData));
+        editData[idx] = JSON.parse(JSON.stringify(chartData));
+        var piI=Math.min(3,chartData.length-1), pfI=Math.max(chartData.length-2,piI+1);
+        var pi=chartData[piI].x, vi=chartData[piI].y, pf=chartData[pfI].x, vf=chartData[pfI].y;
+        createLeftChart(idx, chartData, pi, vi, pf, vf);
+        createRightChart(idx, chartData, vi);
+    })();
+    {% endfor %}
+
+    function enableEdit(idx) {
+        var ch = charts[idx], sec = document.getElementById('chartSection_' + idx);
+        sec.classList.add('edit-active');
+        document.getElementById('btnSave_'+idx).style.display='inline-block';
+        document.getElementById('btnCancel_'+idx).style.display='inline-block';
+        sec.querySelector('.btn-edit').style.display='none';
+        ch.data.datasets[0].pointRadius=6; ch.data.datasets[0].pointHoverRadius=9;
+        ch.data.datasets[0].pointBackgroundColor='#3498db'; ch.data.datasets[0].borderColor='#85c1e9';
+        ch.options.scales.y.max = 550; ch.options.scales.y.min = 0;
+        ch.options.plugins.dragData = {
+            round: 1, showTooltip: false, dragX: true,
+            onDragStart: function(e,di){return di===0;},
+            onDrag: function(e,di,i,v){
+                if(di!==0)return false;
+                if(v.y<0)v.y=0; if(v.y>535)v.y=535; if(v.x<0)v.x=0;
+                var tt=document.getElementById('dragTooltip');
+                tt.style.display='block'; tt.style.left=(e.clientX||e.x)+15+'px'; tt.style.top=(e.clientY||e.y)-30+'px';
+                tt.textContent='P: '+v.x.toFixed(2)+' | V: '+v.y.toFixed(0);
+                return v;
+            },
+            onDragEnd: function(e,di,i,v){ document.getElementById('dragTooltip').style.display='none'; editData[idx][i]={x:v.x,y:v.y}; }
+        };
+        setTimeout(function(){ ch.resize(); ch.update(); if(chartsRight[idx]){chartsRight[idx].resize();} }, 50);
+    }
+
+    function cancelEdit(idx) {
+        var sec = document.getElementById('chartSection_' + idx);
+        sec.classList.remove('edit-active');
+        document.getElementById('btnSave_'+idx).style.display='none';
+        document.getElementById('btnCancel_'+idx).style.display='none';
+        sec.querySelector('.btn-edit').style.display='inline-block';
+        editData[idx] = JSON.parse(JSON.stringify(originalData[idx]));
+        document.getElementById('dragTooltip').style.display='none';
+        rebuildCharts(idx, originalData[idx]);
+    }
+
+    function saveEdit(idx) {
+        var sec = document.getElementById('chartSection_' + idx);
+        var nd = editData[idx];
+        var rapor = sec.closest('.rapor-sayfa');
+        var rows = rapor.querySelectorAll('.data-table tbody tr');
+        var piI=Math.min(3,nd.length-1), pfI=Math.max(nd.length-2,piI+1);
+        nd.forEach(function(pt,i){ if(i<rows.length){ var c=rows[i].querySelectorAll('td'); c[5].textContent=Math.round(pt.y); c[7].textContent=pt.x.toFixed(2); c[6].textContent=interpolate(pt.y,MEBRAN_HACIM,MEBRAN_BASINC).toFixed(2); }});
+        var pi=nd[piI].x,vi=nd[piI].y,pf=nd[pfI].x,vf=nd[pfI].y;
+        var lim=nd[nd.length-1].x, dP=pf-pi, dV=vf-vi, vm=(vi+vf)/2;
+        var em=dV!==0?2.66*(535+vm)*dP/dV:0, nl=lim-pi, epl=nl!==0?em/nl:0;
+        var rc=rapor.querySelectorAll('.results-table .result-value');
+        if(rc.length>=2){rc[0].textContent=lim.toFixed(2);rc[1].textContent=em.toFixed(2);}
+        var cc=rapor.querySelectorAll('.bottom-calc-table .calc-value');
+        if(cc.length>=8){cc[0].textContent=pi.toFixed(2);cc[1].textContent=Math.round(vi);cc[2].textContent=dP.toFixed(2);cc[3].textContent=nl.toFixed(2);cc[4].textContent=pf.toFixed(2);cc[5].textContent=Math.round(vf);cc[6].textContent=Math.round(dV);cc[7].textContent=epl.toFixed(2);}
+        sec.classList.remove('edit-active');
+        document.getElementById('btnSave_'+idx).style.display='none';
+        document.getElementById('btnCancel_'+idx).style.display='none';
+        sec.querySelector('.btn-edit').style.display='inline-block';
+        originalData[idx] = JSON.parse(JSON.stringify(nd));
+        document.getElementById('dragTooltip').style.display='none';
+        rebuildCharts(idx, nd);
+    }
+
+    function enableTableEdit(idx) {
+        var rapor = document.querySelectorAll('.rapor-sayfa')[idx-1];
+        var rows = rapor.querySelectorAll('.data-table tbody tr');
+        var toolbar = rapor.querySelector('.table-edit-toolbar');
+        toolbar.querySelector('.btn-edit').style.display='none';
+        toolbar.querySelector('.btn-save').style.display='inline-block';
+        toolbar.querySelector('.btn-cancel').style.display='inline-block';
+        rows.forEach(function(row){ var cell=row.querySelectorAll('td')[2]; cell.setAttribute('contenteditable','true'); cell.classList.add('editable-cell'); cell.dataset.original=cell.textContent; });
+    }
+    function cancelTableEdit(idx) {
+        var rapor = document.querySelectorAll('.rapor-sayfa')[idx-1];
+        var rows = rapor.querySelectorAll('.data-table tbody tr');
+        var toolbar = rapor.querySelector('.table-edit-toolbar');
+        toolbar.querySelector('.btn-edit').style.display='inline-block';
+        toolbar.querySelector('.btn-save').style.display='none';
+        toolbar.querySelector('.btn-cancel').style.display='none';
+        rows.forEach(function(row){ var cell=row.querySelectorAll('td')[2]; cell.textContent=cell.dataset.original; cell.removeAttribute('contenteditable'); cell.classList.remove('editable-cell'); });
+    }
+    function saveTableEdit(idx) {
+        var rapor = document.querySelectorAll('.rapor-sayfa')[idx-1];
+        var rows = rapor.querySelectorAll('.data-table tbody tr');
+        var toolbar = rapor.querySelector('.table-edit-toolbar');
+        toolbar.querySelector('.btn-edit').style.display='inline-block';
+        toolbar.querySelector('.btn-save').style.display='none';
+        toolbar.querySelector('.btn-cancel').style.display='none';
+        var manYuk=0.60, newData=[];
+        rows.forEach(function(row,i){
+            var cells=row.querySelectorAll('td');
+            var hac=parseInt(cells[2].textContent)||0;
+            if(hac<0)hac=0; if(hac>535)hac=535;
+            cells[2].textContent=hac; cells[2].removeAttribute('contenteditable'); cells[2].classList.remove('editable-cell');
+            var bas=parseFloat(cells[1].textContent)||0;
+            var hid=bas+manYuk/10; cells[3].textContent=hid.toFixed(2);
+            var hd=Math.round(interpolate(hid,HACIM_DUZ_BASINC,HACIM_DUZ_DEGER)); cells[4].textContent=hd;
+            var dh=hac-hd; cells[5].textContent=dh;
+            var md=interpolate(dh,MEBRAN_HACIM,MEBRAN_BASINC); cells[6].textContent=md.toFixed(2);
+            var db=hid-md; cells[7].textContent=db.toFixed(2);
+            newData.push({x:db,y:dh});
+        });
+        var n=newData.length, piI=Math.min(3,n-1), pfI=Math.max(n-2,piI+1);
+        var pi=newData[piI].x,vi=newData[piI].y,pf=newData[pfI].x,vf=newData[pfI].y;
+        var lim=newData[n-1].x, dP=pf-pi, dV=vf-vi, vm=(vi+vf)/2;
+        var em=dV!==0?2.66*(535+vm)*dP/dV:0, nl=lim-pi, epl=nl!==0?em/nl:0;
+        var rc=rapor.querySelectorAll('.results-table .result-value');
+        if(rc.length>=2){rc[0].textContent=lim.toFixed(2);rc[1].textContent=em.toFixed(2);}
+        var cc=rapor.querySelectorAll('.bottom-calc-table .calc-value');
+        if(cc.length>=8){cc[0].textContent=pi.toFixed(2);cc[1].textContent=Math.round(vi);cc[2].textContent=dP.toFixed(2);cc[3].textContent=nl.toFixed(2);cc[4].textContent=pf.toFixed(2);cc[5].textContent=Math.round(vf);cc[6].textContent=Math.round(dV);cc[7].textContent=epl.toFixed(2);}
+        originalData[idx]=JSON.parse(JSON.stringify(newData));
+        editData[idx]=JSON.parse(JSON.stringify(newData));
+        rebuildCharts(idx, newData);
+    }
+    </script>
+</body>
+</html>
