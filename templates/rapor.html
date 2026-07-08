@@ -383,50 +383,40 @@
         var toolbars = element.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar');
         toolbars.forEach(function(t){ t.style.display = 'none'; });
 
-        // Tablo satır sayısına göre grafik yüksekliğini ayarla
-        var tableRows = element.querySelectorAll('.data-table tbody tr').length;
-        var chartContainers = element.querySelectorAll('.chart-container');
-        var originalHeights = [];
-        var originalFontSize = '';
-        var dataTable = element.querySelector('.data-table');
+        // İçeriği ölç ve ölçekle
+        var elementHeight = element.scrollHeight;
+        var a4HeightPx = 1122; // A4 yüksekliği ~1122px (at 96dpi, 297mm)
+        var scale = 1;
+        if (elementHeight > a4HeightPx) {
+            scale = a4HeightPx / elementHeight;
+            scale = Math.max(scale, 0.55); // minimum %55 küçültme
+        }
 
-        if (tableRows > 15) {
-            chartContainers.forEach(function(c) {
-                originalHeights.push(c.style.height);
-                c.style.height = '130px';
-            });
-            if (dataTable) {
-                originalFontSize = dataTable.style.fontSize;
-                dataTable.style.fontSize = '6pt';
-            }
-        } else if (tableRows > 12) {
-            chartContainers.forEach(function(c) {
-                originalHeights.push(c.style.height);
-                c.style.height = '160px';
-            });
-            if (dataTable) {
-                originalFontSize = dataTable.style.fontSize;
-                dataTable.style.fontSize = '7pt';
-            }
+        // Geçici olarak scale uygula
+        var origTransform = element.style.transform;
+        var origTransformOrigin = element.style.transformOrigin;
+        var origHeight = element.style.height;
+        if (scale < 1) {
+            element.style.transformOrigin = 'top left';
+            element.style.transform = 'scale(' + scale + ')';
+            element.style.height = (elementHeight * scale) + 'px';
         }
 
         var opt = {
             margin: [2, 2, 2, 2],
             filename: filename,
-            image: { type: 'jpeg', quality: 0.92 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 800 },
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['none'] }
+            pagebreak: { mode: ['avoid-all'] }
         };
 
         html2pdf().set(opt).from(element).save().then(function() {
+            // Geri al
+            element.style.transform = origTransform;
+            element.style.transformOrigin = origTransformOrigin;
+            element.style.height = origHeight;
             toolbars.forEach(function(t){ t.style.display = ''; });
-            chartContainers.forEach(function(c, i) {
-                if (originalHeights[i]) c.style.height = originalHeights[i];
-            });
-            if (dataTable && originalFontSize !== undefined) {
-                dataTable.style.fontSize = originalFontSize;
-            }
         });
     }
 
@@ -438,57 +428,39 @@
         document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = 'none'; });
         topBar.style.display = 'none';
 
-        // Tüm föyleri daralt (uzun tablolar için)
-        var originals = [];
-        allFoys.forEach(function(foy) {
-            var tableRows = foy.querySelectorAll('.data-table tbody tr').length;
-            var charts = foy.querySelectorAll('.chart-container');
-            var dataTable = foy.querySelector('.data-table');
-            var saved = { charts: [], fontSize: dataTable ? dataTable.style.fontSize : '' };
+        var a4HeightPx = 1122;
 
-            if (tableRows > 15) {
-                charts.forEach(function(c) { saved.charts.push(c.style.height); c.style.height = '130px'; });
-                if (dataTable) dataTable.style.fontSize = '6pt';
-            } else if (tableRows > 12) {
-                charts.forEach(function(c) { saved.charts.push(c.style.height); c.style.height = '160px'; });
-                if (dataTable) dataTable.style.fontSize = '7pt';
-            } else {
-                charts.forEach(function(c) { saved.charts.push(c.style.height); });
-            }
-            originals.push(saved);
-        });
-
-        // Her föyü ayrı ayrı PDF sayfası olarak oluştur
+        // Her föyü scale edip wrapper'a ekle
         var wrapper = document.createElement('div');
         allFoys.forEach(function(foy, i) {
             var clone = foy.cloneNode(true);
-            // Toolbar'ları clone'dan da kaldır
             clone.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.remove(); });
-            if (i < allFoys.length - 1) {
-                clone.style.pageBreakAfter = 'always';
+
+            // Yükseklik hesapla ve ölçekle
+            var h = foy.scrollHeight;
+            if (h > a4HeightPx) {
+                var s = Math.max(a4HeightPx / h, 0.55);
+                clone.style.transformOrigin = 'top left';
+                clone.style.transform = 'scale(' + s + ')';
+                clone.style.height = (h * s) + 'px';
             }
+
+            clone.style.pageBreakAfter = 'always';
             wrapper.appendChild(clone);
         });
 
         var opt = {
             margin: [2, 2, 2, 2],
             filename: 'Presiyometre_Rapor_Tumu.pdf',
-            image: { type: 'jpeg', quality: 0.92 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 800 },
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css'], after: '[style*="page-break-after"]' }
+            pagebreak: { mode: ['css'], before: '.always-break' }
         };
 
         html2pdf().set(opt).from(wrapper).save().then(function() {
             document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = ''; });
             topBar.style.display = '';
-            // Geri al
-            allFoys.forEach(function(foy, i) {
-                var charts = foy.querySelectorAll('.chart-container');
-                var dataTable = foy.querySelector('.data-table');
-                charts.forEach(function(c, j) { if (originals[i].charts[j]) c.style.height = originals[i].charts[j]; });
-                if (dataTable) dataTable.style.fontSize = originals[i].fontSize;
-            });
         });
     }
 
