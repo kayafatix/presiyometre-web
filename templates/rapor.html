@@ -6,7 +6,8 @@
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.3.0/dist/chartjs-plugin-dragdata.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         .edit-toolbar {
             text-align: center;
@@ -379,43 +380,38 @@
         var yy = String(now.getFullYear()).slice(-2);
         var filename = kuyu + '_' + derinlik + 'm_' + dd + '_' + mm + '_' + yy + '.pdf';
 
-        // Toolbar'ları geçici gizle
+        // Toolbar'ları gizle
         var toolbars = element.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar');
         toolbars.forEach(function(t){ t.style.display = 'none'; });
 
-        // İçeriği ölç ve ölçekle
-        var elementHeight = element.scrollHeight;
-        var a4HeightPx = 1122; // A4 yüksekliği ~1122px (at 96dpi, 297mm)
-        var scale = 1;
-        if (elementHeight > a4HeightPx) {
-            scale = a4HeightPx / elementHeight;
-            scale = Math.max(scale, 0.55); // minimum %55 küçültme
-        }
+        // Element'i resme çevir, sonra A4'e sığdır
+        html2canvas(element, { scale: 2, useCORS: true, scrollY: -window.scrollY }).then(function(canvas) {
+            var imgData = canvas.toDataURL('image/jpeg', 0.95);
+            var pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+            var pageWidth = 210; // A4 genişlik mm
+            var pageHeight = 297; // A4 yükseklik mm
+            var margin = 3;
+            var usableWidth = pageWidth - (margin * 2);
+            var usableHeight = pageHeight - (margin * 2);
 
-        // Geçici olarak scale uygula
-        var origTransform = element.style.transform;
-        var origTransformOrigin = element.style.transformOrigin;
-        var origHeight = element.style.height;
-        if (scale < 1) {
-            element.style.transformOrigin = 'top left';
-            element.style.transform = 'scale(' + scale + ')';
-            element.style.height = (elementHeight * scale) + 'px';
-        }
+            // Canvas oranını koru, A4'e sığdır
+            var imgWidth = usableWidth;
+            var imgHeight = (canvas.height * usableWidth) / canvas.width;
 
-        var opt = {
-            margin: [2, 2, 2, 2],
-            filename: filename,
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all'] }
-        };
+            // Yükseklik taşıyorsa, yüksekliğe göre ölçekle
+            if (imgHeight > usableHeight) {
+                imgHeight = usableHeight;
+                imgWidth = (canvas.width * usableHeight) / canvas.height;
+            }
 
-        html2pdf().set(opt).from(element).save().then(function() {
-            // Geri al
-            element.style.transform = origTransform;
-            element.style.transformOrigin = origTransformOrigin;
-            element.style.height = origHeight;
+            // Ortala
+            var x = margin + (usableWidth - imgWidth) / 2;
+            var y = margin;
+
+            pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
+            pdf.save(filename);
+
+            // Toolbar'ları geri göster
             toolbars.forEach(function(t){ t.style.display = ''; });
         });
     }
@@ -428,37 +424,40 @@
         document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = 'none'; });
         topBar.style.display = 'none';
 
-        var a4HeightPx = 1122;
+        var pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+        var pageWidth = 210;
+        var pageHeight = 297;
+        var margin = 3;
+        var usableWidth = pageWidth - (margin * 2);
+        var usableHeight = pageHeight - (margin * 2);
 
-        // Her föyü scale edip wrapper'a ekle
-        var wrapper = document.createElement('div');
-        allFoys.forEach(function(foy, i) {
-            var clone = foy.cloneNode(true);
-            clone.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.remove(); });
-
-            // Yükseklik hesapla ve ölçekle
-            var h = foy.scrollHeight;
-            if (h > a4HeightPx) {
-                var s = Math.max(a4HeightPx / h, 0.55);
-                clone.style.transformOrigin = 'top left';
-                clone.style.transform = 'scale(' + s + ')';
-                clone.style.height = (h * s) + 'px';
-            }
-
-            clone.style.pageBreakAfter = 'always';
-            wrapper.appendChild(clone);
+        // Her föyü sırayla canvas'a çevir
+        var promises = [];
+        allFoys.forEach(function(foy) {
+            promises.push(html2canvas(foy, { scale: 2, useCORS: true, scrollY: -window.scrollY }));
         });
 
-        var opt = {
-            margin: [2, 2, 2, 2],
-            filename: 'Presiyometre_Rapor_Tumu.pdf',
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css'], before: '.always-break' }
-        };
+        Promise.all(promises).then(function(canvases) {
+            canvases.forEach(function(canvas, i) {
+                if (i > 0) pdf.addPage();
 
-        html2pdf().set(opt).from(wrapper).save().then(function() {
+                var imgData = canvas.toDataURL('image/jpeg', 0.95);
+                var imgWidth = usableWidth;
+                var imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+                if (imgHeight > usableHeight) {
+                    imgHeight = usableHeight;
+                    imgWidth = (canvas.width * usableHeight) / canvas.height;
+                }
+
+                var x = margin + (usableWidth - imgWidth) / 2;
+                var y = margin;
+                pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
+            });
+
+            pdf.save('Presiyometre_Rapor_Tumu.pdf');
+
+            // Geri göster
             document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = ''; });
             topBar.style.display = '';
         });
