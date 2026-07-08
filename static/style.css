@@ -62,6 +62,53 @@ body {
     .no-print { display: none !important; }
 }
 
+/* ===== MOBİL UYUMLULUK ===== */
+@media screen and (max-width: 768px) {
+    .rapor-sayfa {
+        padding: 3mm;
+        position: relative;
+        padding-bottom: 60px;
+    }
+    .bottom-calc-table td {
+        font-size: 6pt;
+        padding: 2px 2px;
+        height: auto;
+    }
+    .bottom-calc-table .calc-value {
+        font-size: 7pt;
+    }
+    .footer-notes {
+        font-size: 5pt;
+        line-height: 1.1;
+    }
+    .sayfa-imza {
+        position: relative;
+        bottom: auto;
+        right: auto;
+        text-align: right;
+        font-size: 7pt;
+        margin-top: 5px;
+    }
+    .sayfa-altbilgi {
+        position: relative;
+        bottom: auto;
+        left: auto;
+        right: auto;
+        font-size: 6pt;
+        margin-top: 3px;
+    }
+    .chart-container {
+        height: 160px !important;
+    }
+    .data-table {
+        font-size: 6.5pt;
+    }
+    .info-table td {
+        font-size: 7pt;
+        padding: 2px 3px;
+    }
+}
+
 
 /* ===== BAŞLIK KISMI ===== */
 .header-section {
