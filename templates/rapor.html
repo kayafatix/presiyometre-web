@@ -2,13 +2,13 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Presiyometre Deney Raporu - {{ toplam }} Föy</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.3.0/dist/chartjs-plugin-dragdata.min.js"></script>
-    {% if mode == 'web' %}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    {% endif %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         .edit-toolbar {
             text-align: center;
@@ -108,11 +108,7 @@
     <!-- Yazdırma / PDF Butonu -->
     <div class="no-print" style="text-align:center; padding:12px 20px; background:linear-gradient(135deg, #2c3e50, #34495e); color:white; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
         <span style="margin-right:25px; font-size:0.95em;">📄 Toplam <strong>{{ toplam }}</strong> rapor föyü oluşturuldu</span>
-        {% if mode == 'desktop' %}
-        <button class="btn-print" onclick="window.print()" style="display:inline-block; margin:0;">🖨️ Tümünü Yazdır</button>
-        {% else %}
         <button class="btn-print" onclick="downloadAllPDF()" style="display:inline-block; margin:0; background:#e74c3c;">📥 Tümünü PDF İndir</button>
-        {% endif %}
         <a href="/" style="margin-left:25px; color:#bdc3c7; text-decoration:none; font-size:0.9em;">← Geri Dön</a>
     </div>
 
@@ -120,11 +116,7 @@
     <div class="rapor-sayfa" id="foy_{{ loop.index }}">
         <!-- Föy Kaydetme Toolbar -->
         <div class="foy-toolbar no-print" style="text-align:right; margin-bottom:3px;">
-            {% if mode == 'desktop' %}
-            <button onclick="saveSingleFoy({{ loop.index }}, '{{ data.kuyu_no }}', '{{ data.deney_derinligi }}')" style="padding:3px 10px; font-size:7.5pt; background:#27ae60; color:white; border:none; border-radius:3px; cursor:pointer;">🖨️ Yazdır</button>
-            {% else %}
             <button onclick="downloadFoyPDF({{ loop.index }}, '{{ data.kuyu_no }}', '{{ data.deney_derinligi }}')" style="padding:3px 10px; font-size:7.5pt; background:#e74c3c; color:white; border:none; border-radius:3px; cursor:pointer;">📥 PDF İndir</button>
-            {% endif %}
         </div>
         <!-- ===== BAŞLIK ===== -->
         <div class="header-section">
@@ -389,20 +381,38 @@
         var yy = String(now.getFullYear()).slice(-2);
         var filename = kuyu + '_' + derinlik + 'm_' + dd + '_' + mm + '_' + yy + '.pdf';
 
-        // Toolbar'ları geçici gizle
+        // Toolbar'ları gizle
         var toolbars = element.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar');
         toolbars.forEach(function(t){ t.style.display = 'none'; });
 
-        var opt = {
-            margin: [5, 5, 5, 5],
-            filename: filename,
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
+        // Element'i resme çevir, sonra A4'e sığdır
+        html2canvas(element, { scale: 2, useCORS: true, scrollY: -window.scrollY }).then(function(canvas) {
+            var imgData = canvas.toDataURL('image/jpeg', 0.95);
+            var pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+            var pageWidth = 210; // A4 genişlik mm
+            var pageHeight = 297; // A4 yükseklik mm
+            var margin = 3;
+            var usableWidth = pageWidth - (margin * 2);
+            var usableHeight = pageHeight - (margin * 2);
 
-        html2pdf().set(opt).from(element).save().then(function() {
+            // Canvas oranını koru, A4'e sığdır
+            var imgWidth = usableWidth;
+            var imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+            // Yükseklik taşıyorsa, yüksekliğe göre ölçekle
+            if (imgHeight > usableHeight) {
+                imgHeight = usableHeight;
+                imgWidth = (canvas.width * usableHeight) / canvas.height;
+            }
+
+            // Ortala
+            var x = margin + (usableWidth - imgWidth) / 2;
+            var y = margin;
+
+            pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
+            pdf.save(filename);
+
+            // Toolbar'ları geri göster
             toolbars.forEach(function(t){ t.style.display = ''; });
         });
     }
@@ -415,26 +425,40 @@
         document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = 'none'; });
         topBar.style.display = 'none';
 
-        // Tüm föyleri içeren bir wrapper oluştur
-        var wrapper = document.createElement('div');
-        allFoys.forEach(function(foy, i) {
-            var clone = foy.cloneNode(true);
-            if (i < allFoys.length - 1) {
-                clone.style.pageBreakAfter = 'always';
-            }
-            wrapper.appendChild(clone);
+        var pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+        var pageWidth = 210;
+        var pageHeight = 297;
+        var margin = 3;
+        var usableWidth = pageWidth - (margin * 2);
+        var usableHeight = pageHeight - (margin * 2);
+
+        // Her föyü sırayla canvas'a çevir
+        var promises = [];
+        allFoys.forEach(function(foy) {
+            promises.push(html2canvas(foy, { scale: 2, useCORS: true, scrollY: -window.scrollY }));
         });
 
-        var opt = {
-            margin: [5, 5, 5, 5],
-            filename: 'Presiyometre_Rapor_Tumu.pdf',
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'], after: '.rapor-sayfa' }
-        };
+        Promise.all(promises).then(function(canvases) {
+            canvases.forEach(function(canvas, i) {
+                if (i > 0) pdf.addPage();
 
-        html2pdf().set(opt).from(wrapper).save().then(function() {
+                var imgData = canvas.toDataURL('image/jpeg', 0.95);
+                var imgWidth = usableWidth;
+                var imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+                if (imgHeight > usableHeight) {
+                    imgHeight = usableHeight;
+                    imgWidth = (canvas.width * usableHeight) / canvas.height;
+                }
+
+                var x = margin + (usableWidth - imgWidth) / 2;
+                var y = margin;
+                pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
+            });
+
+            pdf.save('Presiyometre_Rapor_Tumu.pdf');
+
+            // Geri göster
             document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = ''; });
             topBar.style.display = '';
         });
