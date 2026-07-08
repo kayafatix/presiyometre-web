@@ -62,68 +62,6 @@ body {
     .no-print { display: none !important; }
 }
 
-/* ===== MOBİL UYUMLULUK ===== */
-@media screen and (max-width: 768px) {
-    * {
-        -webkit-text-size-adjust: 100%;
-        -moz-text-size-adjust: 100%;
-        text-size-adjust: 100%;
-    }
-    .rapor-sayfa {
-        padding: 3mm;
-        position: relative;
-        padding-bottom: 60px;
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-    }
-    .bottom-calc-table td {
-        font-size: 6pt;
-        padding: 2px 2px;
-        height: auto;
-    }
-    .bottom-calc-table .calc-value {
-        font-size: 7pt;
-    }
-    .footer-notes {
-        font-size: 4.5pt;
-        line-height: 1.1;
-        -webkit-text-size-adjust: none;
-        text-size-adjust: none;
-    }
-    .sayfa-imza {
-        position: absolute;
-        bottom: 25px;
-        right: 3mm;
-        text-align: right;
-        font-size: 6.5pt;
-        -webkit-text-size-adjust: none;
-        text-size-adjust: none;
-    }
-    .sayfa-altbilgi {
-        position: absolute;
-        bottom: 5px;
-        left: 3mm;
-        right: 3mm;
-        font-size: 5.5pt;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        -webkit-text-size-adjust: none;
-        text-size-adjust: none;
-    }
-    .chart-container {
-        height: 160px !important;
-    }
-    .data-table {
-        font-size: 6.5pt;
-    }
-    .info-table td {
-        font-size: 7pt;
-        padding: 2px 3px;
-    }
-}
-
 
 /* ===== BAŞLIK KISMI ===== */
 .header-section {
