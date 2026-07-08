@@ -383,10 +383,37 @@
         var toolbars = element.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar');
         toolbars.forEach(function(t){ t.style.display = 'none'; });
 
+        // Tablo satır sayısına göre grafik yüksekliğini ayarla
+        var tableRows = element.querySelectorAll('.data-table tbody tr').length;
+        var chartContainers = element.querySelectorAll('.chart-container');
+        var originalHeights = [];
+        var chartSection = element.querySelector('.chart-section');
+        var originalFontSize = '';
+
+        if (tableRows > 15) {
+            // Uzun tablo: grafikleri daralt
+            chartContainers.forEach(function(c) {
+                originalHeights.push(c.style.height);
+                c.style.height = '140px';
+            });
+            // Tablo fontunu küçült
+            var dataTable = element.querySelector('.data-table');
+            if (dataTable) {
+                originalFontSize = dataTable.style.fontSize;
+                dataTable.style.fontSize = '6.5pt';
+            }
+        } else if (tableRows > 12) {
+            // Orta uzunluk: grafikleri biraz daralt
+            chartContainers.forEach(function(c) {
+                originalHeights.push(c.style.height);
+                c.style.height = '170px';
+            });
+        }
+
         var opt = {
-            margin: [5, 5, 5, 5],
+            margin: [3, 3, 3, 3],
             filename: filename,
-            image: { type: 'jpeg', quality: 0.95 },
+            image: { type: 'jpeg', quality: 0.92 },
             html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
@@ -394,6 +421,15 @@
 
         html2pdf().set(opt).from(element).save().then(function() {
             toolbars.forEach(function(t){ t.style.display = ''; });
+            // Grafik yüksekliklerini geri al
+            chartContainers.forEach(function(c, i) {
+                if (originalHeights[i]) c.style.height = originalHeights[i];
+            });
+            // Tablo fontunu geri al
+            if (originalFontSize !== undefined) {
+                var dataTable = element.querySelector('.data-table');
+                if (dataTable) dataTable.style.fontSize = originalFontSize;
+            }
         });
     }
 
@@ -404,6 +440,23 @@
         // Toolbar'ları gizle
         document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = 'none'; });
         topBar.style.display = 'none';
+
+        // Tüm föyleri daralt (uzun tablolar için)
+        var originals = [];
+        allFoys.forEach(function(foy) {
+            var tableRows = foy.querySelectorAll('.data-table tbody tr').length;
+            var charts = foy.querySelectorAll('.chart-container');
+            var dataTable = foy.querySelector('.data-table');
+            var saved = { charts: [], fontSize: dataTable ? dataTable.style.fontSize : '' };
+
+            if (tableRows > 15) {
+                charts.forEach(function(c) { saved.charts.push(c.style.height); c.style.height = '140px'; });
+                if (dataTable) dataTable.style.fontSize = '6.5pt';
+            } else if (tableRows > 12) {
+                charts.forEach(function(c) { saved.charts.push(c.style.height); c.style.height = '170px'; });
+            }
+            originals.push(saved);
+        });
 
         // Tüm föyleri içeren bir wrapper oluştur
         var wrapper = document.createElement('div');
@@ -416,9 +469,9 @@
         });
 
         var opt = {
-            margin: [5, 5, 5, 5],
+            margin: [3, 3, 3, 3],
             filename: 'Presiyometre_Rapor_Tumu.pdf',
-            image: { type: 'jpeg', quality: 0.95 },
+            image: { type: 'jpeg', quality: 0.92 },
             html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['css', 'legacy'], after: '.rapor-sayfa' }
@@ -427,6 +480,13 @@
         html2pdf().set(opt).from(wrapper).save().then(function() {
             document.querySelectorAll('.foy-toolbar, .edit-toolbar, .table-edit-toolbar').forEach(function(t){ t.style.display = ''; });
             topBar.style.display = '';
+            // Geri al
+            allFoys.forEach(function(foy, i) {
+                var charts = foy.querySelectorAll('.chart-container');
+                var dataTable = foy.querySelector('.data-table');
+                charts.forEach(function(c, j) { if (originals[i].charts[j]) c.style.height = originals[i].charts[j]; });
+                if (dataTable) dataTable.style.fontSize = originals[i].fontSize;
+            });
         });
     }
 
