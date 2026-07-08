@@ -73,6 +73,9 @@ body {
         padding: 3mm;
         position: relative;
         padding-bottom: 60px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
     }
     .bottom-calc-table td {
         font-size: 6pt;
@@ -89,22 +92,20 @@ body {
         text-size-adjust: none;
     }
     .sayfa-imza {
-        position: relative;
-        bottom: auto;
-        right: auto;
+        position: absolute;
+        bottom: 25px;
+        right: 3mm;
         text-align: right;
         font-size: 6.5pt;
-        margin-top: 5px;
         -webkit-text-size-adjust: none;
         text-size-adjust: none;
     }
     .sayfa-altbilgi {
-        position: relative;
-        bottom: auto;
-        left: auto;
-        right: auto;
+        position: absolute;
+        bottom: 5px;
+        left: 3mm;
+        right: 3mm;
         font-size: 5.5pt;
-        margin-top: 3px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
