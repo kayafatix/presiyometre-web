@@ -71,11 +71,9 @@ body {
     }
     .rapor-sayfa {
         padding: 3mm;
+        padding-bottom: 45px;
         position: relative;
-        padding-bottom: 60px;
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
+        min-height: 287mm;
     }
     .bottom-calc-table td {
         font-size: 6pt;
