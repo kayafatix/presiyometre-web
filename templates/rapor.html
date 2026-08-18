@@ -175,7 +175,7 @@
                     <span class="en-text">Borehole Number</span>
                 </td>
                 <td class="value-cell">{{ data.kuyu_no }}</td>
-                <td class="label-cell">
+                <td class="label-cell" style="white-space:nowrap;">
                     <span class="tr-text">Manometre Yüksekliği (m)</span>
                     <span class="en-text">Height of Manometer</span>
                 </td>
@@ -289,6 +289,13 @@
                 <button type="button" class="btn-edit" onclick="enableEdit({{ loop.index }})">✏️ Düzenle</button>
                 <button type="button" class="btn-save" id="btnSave_{{ loop.index }}" onclick="saveEdit({{ loop.index }})">💾 Kaydet</button>
                 <button type="button" class="btn-cancel" id="btnCancel_{{ loop.index }}" onclick="cancelEdit({{ loop.index }})">✖ İptal</button>
+                <button type="button" style="padding:4px 10px;margin-left:10px;border:none;border-radius:4px;cursor:pointer;font-size:8pt;font-weight:bold;background:#e74c3c;color:white;" onclick="showPiPfEditor({{ loop.index }})">△ Pi/Pf</button>
+                <span id="piPfPanel_{{ loop.index }}" style="display:none;margin-left:8px;font-size:8pt;">
+                    Pi idx: <select id="piSelect_{{ loop.index }}" style="font-size:8pt;"></select>
+                    Pf idx: <select id="pfSelect_{{ loop.index }}" style="font-size:8pt;"></select>
+                    <button onclick="applyPiPf({{ loop.index }})" style="padding:2px 8px;font-size:7.5pt;background:#27ae60;color:#fff;border:none;border-radius:3px;cursor:pointer;">Uygula</button>
+                    <button onclick="hidePiPfPanel({{ loop.index }})" style="padding:2px 8px;font-size:7.5pt;background:#95a5a6;color:#fff;border:none;border-radius:3px;cursor:pointer;">✖</button>
+                </span>
             </div>
             <div style="display:flex; gap:10px; height:100%;">
                 {% set max_bas = data.tablo[-1].basinc | float %}
@@ -296,6 +303,10 @@
                     <canvas id="chart_left_{{ loop.index }}"></canvas>
                 </div>
                 <div class="chart-container chart-right-wrap" style="height:220px; flex:1; position:relative;">
+                    <div class="no-print" style="position:absolute;top:2px;right:2px;z-index:10;">
+                        <button type="button" class="btn-right-edit" onclick="enableRightEdit({{ loop.index }})" style="padding:2px 6px;font-size:7pt;background:#f39c12;color:#fff;border:none;border-radius:3px;cursor:pointer;">✏️</button>
+                        <button type="button" class="btn-right-save" onclick="saveRightEdit({{ loop.index }})" style="display:none;padding:2px 6px;font-size:7pt;background:#27ae60;color:#fff;border:none;border-radius:3px;cursor:pointer;">💾</button>
+                    </div>
                     <canvas id="chart_right_{{ loop.index }}"></canvas>
                 </div>
             </div>
@@ -304,9 +315,9 @@
         <!-- ===== ALT HESAPLAMA ===== -->
         <table class="bottom-calc-table">
             <tr>
-                <td class="calc-label">P₁ (kg/cm²)</td>
+                <td class="calc-label">Pᵢ (kg/cm²)</td>
                 <td class="calc-value">{{ data.sonuclar.pi }}</td>
-                <td class="calc-label">V₁ (cm³)</td>
+                <td class="calc-label">Vᵢ (cm³)</td>
                 <td class="calc-value">{{ data.sonuclar.vi }}</td>
                 <td class="calc-label">ΔP (kg/cm²)</td>
                 <td class="calc-value">{{ data.sonuclar.delta_p }}</td>
@@ -444,6 +455,10 @@
         });
     }
 
+    // EM üst sınırları (bar bazında)
+    var EM_MAX = {5:60,6:70,7:80,8:90,9:100,10:110,11:120,12:130,13:140,14:170,15:190,16:230,17:260,18:290,19:340,20:380,21:420,22:460,23:500,24:550,25:600,26:650,27:700,28:750,29:800,30:850};
+    function capEM(em, maxBar) { var cap = EM_MAX[maxBar] || EM_MAX[30]; return Math.min(em, cap); }
+
     function interpolate(x, xT, yT) {
         if (x <= xT[0]) return yT[0];
         if (x >= xT[xT.length-1]) return yT[xT.length-1];
@@ -460,12 +475,13 @@
         var nc = document.createElement('canvas');
         nc.id = 'chart_left_' + idx;
         p.appendChild(nc);
+        var xMax = Math.ceil(data[data.length-1].x) + 1;
         charts[idx] = new Chart(nc.getContext('2d'), {
             type: 'scatter',
             data: { datasets: [
-                { label: 'Presiyometre Egrisi', data: data, borderColor: '#1a5276', backgroundColor: '#1a5276', borderWidth: 2, pointRadius: 2, pointHitRadius: 8, showLine: true, tension: 0.4, fill: false },
-                { label: 'Pi, Vi', data: [{x:pi,y:vi}], borderColor: '#e74c3c', backgroundColor: '#e74c3c', pointRadius: 7, pointStyle: 'triangle', showLine: false },
-                { label: 'Pf, Vf', data: [{x:pf,y:vf}], borderColor: '#f39c12', backgroundColor: '#f39c12', pointRadius: 7, pointStyle: 'triangle', showLine: false }
+                { label: 'Presiyometre Egrisi', data: data, borderColor: '#1a5276', backgroundColor: '#1a5276', borderWidth: 1.5, pointRadius: 1.5, pointHitRadius: 6, showLine: true, tension: 0.4, fill: false },
+                { label: 'Pi, Vi', data: [{x:pi,y:vi}], borderColor: '#e74c3c', backgroundColor: '#e74c3c', pointRadius: 5, pointStyle: 'triangle', showLine: false },
+                { label: 'Pf, Vf', data: [{x:pf,y:vf}], borderColor: '#f39c12', backgroundColor: '#f39c12', pointRadius: 5, pointStyle: 'triangle', showLine: false }
             ]},
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { position: 'top', labels: { font: { family: 'Times New Roman', size: 9 } } }, dragData: false },
@@ -473,7 +489,7 @@
                     x: { title: { display: true, text: 'Basinc, P (kg/cm2)', font: { family: 'Times New Roman', size: 10, style: 'italic' } },
                         grid: { color: '#ddd' },
                         ticks: { stepSize: 1, autoSkip: false, font: { size: 9 } },
-                        min: 0, max: Math.ceil(data[data.length-1].x) + 1 },
+                        min: 0, max: xMax },
                     y: { title: { display: true, text: 'Hacim, V (cm3)', font: { family: 'Times New Roman', size: 10, style: 'italic' } },
                         grid: { color: '#ddd' },
                         ticks: { stepSize: 100, autoSkip: false, includeBounds: true, font: { size: 9 } },
@@ -482,6 +498,8 @@
             }
         });
     }
+
+    var trendData = {};  // trend çizgisi parametreleri
 
     function createRightChart(idx, data, vi) {
         var c = document.getElementById('chart_right_' + idx);
@@ -496,20 +514,117 @@
         last3.forEach(function(pt){sX+=pt.x;sY+=pt.y;sXY+=pt.x*pt.y;sX2+=pt.x*pt.x;});
         var m=(3*sXY-sX*sY)/(3*sX2-sX*sX), b=(sY-m*sX)/3;
         var pLim=m!==0?(vLim-b)/m:35, xMax=Math.max(35,pLim+5);
-        // Kesik çizgiyi Y eksenine kadar uzat (x=0'daki y değerini hesapla)
-        var yAtZero = b;  // x=0'da trend çizgisinin y değeri
+        var yAtZero = b;
+        var yMin = 100;
+        var defaultStartY = Math.max(yAtZero, yMin);
+        var startY = trendData[idx] ? trendData[idx].startY : defaultStartY;
+        if (startY < yMin) startY = defaultStartY;
+        var startX = m!==0 ? (startY - b) / m : 0;
+        if (startX < 0) { startX = 0; startY = b; }
+        trendData[idx] = {m:m, b:b, pLim:pLim, vLim:vLim, startY:startY, startX:startX, xMax:xMax, editing:!!(trendData[idx]&&trendData[idx].editing)};
+        var showPt = trendData[idx].editing;
         chartsRight[idx] = new Chart(nc.getContext('2d'), {
             type: 'scatter',
             data: { datasets: [
-                { label: 'V_lim='+Math.round(vLim), data: [{x:0,y:vLim},{x:xMax,y:vLim}], borderColor: '#f39c12', borderWidth: 2.5, pointRadius: 0, showLine: true, tension: 0, fill: false },
-                { label: 'Trend', data: [{x:0,y:yAtZero},{x:pLim,y:vLim}], borderColor: '#f39c12', borderWidth: 2, borderDash: [6,4], pointRadius: 0, showLine: true, tension: 0, fill: false },
-                { label: 'Son 3', data: last3, borderColor: '#1a5276', backgroundColor: '#1a5276', pointRadius: 2.3, showLine: false }
+                { label: 'V_lim='+Math.round(vLim), data: [{x:0,y:vLim},{x:xMax,y:vLim}], borderColor: '#f39c12', borderWidth: 1.8, pointRadius: 0, showLine: true, tension: 0, fill: false },
+                { label: 'Trend', data: [{x:startX,y:startY},{x:pLim,y:vLim}], borderColor: '#f39c12', borderWidth: 1.5, borderDash: [6,4], pointRadius: [showPt?3:0,0], pointBackgroundColor: '#f39c12', showLine: true, tension: 0, fill: false },
+                { label: 'Son 3', data: last3, borderColor: '#1a5276', backgroundColor: '#1a5276', pointRadius: 1.8, showLine: false }
             ]},
             options: { responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { position: 'top', labels: { font: { family: 'Times New Roman', size: 8 } } }, dragData: false },
                 scales: { x: { title: { display: true, text: 'P (kg/cm2)', font: { size: 9, style: 'italic' } }, min: 0, max: xMax }, y: { title: { display: true, text: 'V (cm3)', font: { size: 9, style: 'italic' } }, min: 100, max: Math.max(1000, vLim+100) } }
             }
         });
+    }
+
+    function enableRightEdit(idx) {
+        var ch = chartsRight[idx], sec = document.getElementById('chartSection_' + idx);
+        var btn = sec.querySelector('.btn-right-edit');
+        var btnSave = sec.querySelector('.btn-right-save');
+        btn.style.display = 'none';
+        btnSave.style.display = 'inline-block';
+        trendData[idx].editing = true;
+        ch.data.datasets[1].pointRadius = [3, 0];
+        ch.options.plugins.dragData = {
+            round: 0, showTooltip: false, dragX: false,
+            onDragStart: function(e, di, i) { return di === 1 && i === 0; },
+            onDrag: function(e, di, i, v) {
+                if (di !== 1 || i !== 0) return false;
+                var td = trendData[idx];
+                if (v.y < 100) v.y = 100;
+                if (v.y >= td.vLim) v.y = td.vLim - 10;
+                v.x = td.m !== 0 ? (v.y - td.b) / td.m : v.x;
+                if (v.x < 0) v.x = 0;
+                return v;
+            },
+            onDragEnd: function(e, di, i, v) {
+                trendData[idx].startY = v.y;
+                trendData[idx].startX = v.x;
+            }
+        };
+        ch.update();
+    }
+
+    function saveRightEdit(idx) {
+        var sec = document.getElementById('chartSection_' + idx);
+        sec.querySelector('.btn-right-edit').style.display = 'inline-block';
+        sec.querySelector('.btn-right-save').style.display = 'none';
+        trendData[idx].editing = false;
+        var ch = chartsRight[idx];
+        ch.data.datasets[1].pointRadius = [0, 0];
+        ch.options.plugins.dragData = false;
+        ch.update();
+    }
+
+    var customPiPf = {};
+
+    function showPiPfEditor(idx) {
+        var data = originalData[idx];
+        var panel = document.getElementById('piPfPanel_' + idx);
+        var piSel = document.getElementById('piSelect_' + idx);
+        var pfSel = document.getElementById('pfSelect_' + idx);
+        piSel.innerHTML = '';
+        pfSel.innerHTML = '';
+        var maxBar = chartMaxBar[idx] || 20;
+        var n = data.length - 1;
+        var cur = customPiPf[idx] || getPiPfIndices(maxBar, n);
+        for (var i = 0; i <= n; i++) {
+            var lbl = i + ' (P=' + data[i].x.toFixed(1) + ', V=' + Math.round(data[i].y) + ')';
+            piSel.innerHTML += '<option value="' + i + '"' + (i == cur[0] ? ' selected' : '') + '>' + lbl + '</option>';
+            pfSel.innerHTML += '<option value="' + i + '"' + (i == cur[1] ? ' selected' : '') + '>' + lbl + '</option>';
+        }
+        panel.style.display = 'inline';
+    }
+
+    function hidePiPfPanel(idx) {
+        document.getElementById('piPfPanel_' + idx).style.display = 'none';
+    }
+
+    function applyPiPf(idx) {
+        var piI = +document.getElementById('piSelect_' + idx).value;
+        var pfI = +document.getElementById('pfSelect_' + idx).value;
+        if (pfI <= piI) { alert('Pf, Pi\'den büyük olmalı!'); return; }
+        customPiPf[idx] = [piI, pfI];
+        var data = originalData[idx];
+        var pi = data[piI].x, vi = data[piI].y, pf = data[pfI].x, vf = data[pfI].y;
+        var lim = data[data.length - 1].x, dP = pf - pi, dV = vf - vi, vm = (vi + vf) / 2;
+        var em = dV !== 0 ? capEM(2.66 * (535 + vm) * dP / dV, chartMaxBar[idx]||20) : 0;
+        var nl = lim - pi, epl = nl !== 0 ? em / nl : 0;
+        var rapor = document.getElementById('chartSection_' + idx).closest('.rapor-sayfa');
+        var rc = rapor.querySelectorAll('.results-table .result-value');
+        if (rc.length >= 2) { rc[0].textContent = lim.toFixed(2); rc[1].textContent = em.toFixed(2); }
+        var cc = rapor.querySelectorAll('.bottom-calc-table .calc-value');
+        if (cc.length >= 8) {
+            cc[0].textContent = pi.toFixed(2); cc[1].textContent = Math.round(vi);
+            cc[2].textContent = dP.toFixed(2); cc[3].textContent = nl.toFixed(2);
+            cc[4].textContent = pf.toFixed(2); cc[5].textContent = Math.round(vf);
+            cc[6].textContent = Math.round(dV); cc[7].textContent = epl.toFixed(2);
+        }
+        if (charts[idx]) charts[idx].destroy();
+        if (chartsRight[idx]) chartsRight[idx].destroy();
+        createLeftChart(idx, JSON.parse(JSON.stringify(data)), pi, vi, pf, vf);
+        createRightChart(idx, JSON.parse(JSON.stringify(data)), vi);
+        hidePiPfPanel(idx);
     }
 
     // Pi/Pf indeks hesaplama (backend mantığıyla aynı)
@@ -539,7 +654,7 @@
     function rebuildCharts(idx, data) {
         var maxBar = chartMaxBar[idx] || 20;
         var n = data.length - 1;
-        var indices = getPiPfIndices(maxBar, n);
+        var indices = customPiPf[idx] || getPiPfIndices(maxBar, n);
         var piI = indices[0], pfI = indices[1];
         var pi=data[piI].x, vi=data[piI].y, pf=data[pfI].x, vf=data[pfI].y;
         if(charts[idx]) charts[idx].destroy();
@@ -604,12 +719,12 @@
         var rows = rapor.querySelectorAll('.data-table tbody tr');
         var maxBar = chartMaxBar[idx] || 20;
         var n = nd.length - 1;
-        var indices = getPiPfIndices(maxBar, n);
+        var indices = customPiPf[idx] || getPiPfIndices(maxBar, n);
         var piI = indices[0], pfI = indices[1];
         nd.forEach(function(pt,i){ if(i<rows.length){ var c=rows[i].querySelectorAll('td'); c[5].textContent=Math.round(pt.y); c[7].textContent=pt.x.toFixed(2); c[6].textContent=interpolate(pt.y,MEBRAN_HACIM,MEBRAN_BASINC).toFixed(2); }});
         var pi=nd[piI].x,vi=nd[piI].y,pf=nd[pfI].x,vf=nd[pfI].y;
         var lim=nd[nd.length-1].x, dP=pf-pi, dV=vf-vi, vm=(vi+vf)/2;
-        var em=dV!==0?2.66*(535+vm)*dP/dV:0, nl=lim-pi, epl=nl!==0?em/nl:0;
+        var em=dV!==0?capEM(2.66*(535+vm)*dP/dV,chartMaxBar[idx]||20):0, nl=lim-pi, epl=nl!==0?em/nl:0;
         var rc=rapor.querySelectorAll('.results-table .result-value');
         if(rc.length>=2){rc[0].textContent=lim.toFixed(2);rc[1].textContent=em.toFixed(2);}
         var cc=rapor.querySelectorAll('.bottom-calc-table .calc-value');
@@ -665,7 +780,7 @@
         var n=newData.length, piI=Math.min(3,n-1), pfI=Math.max(n-2,piI+1);
         var pi=newData[piI].x,vi=newData[piI].y,pf=newData[pfI].x,vf=newData[pfI].y;
         var lim=newData[n-1].x, dP=pf-pi, dV=vf-vi, vm=(vi+vf)/2;
-        var em=dV!==0?2.66*(535+vm)*dP/dV:0, nl=lim-pi, epl=nl!==0?em/nl:0;
+        var em=dV!==0?capEM(2.66*(535+vm)*dP/dV,chartMaxBar[idx]||20):0, nl=lim-pi, epl=nl!==0?em/nl:0;
         var rc=rapor.querySelectorAll('.results-table .result-value');
         if(rc.length>=2){rc[0].textContent=lim.toFixed(2);rc[1].textContent=em.toFixed(2);}
         var cc=rapor.querySelectorAll('.bottom-calc-table .calc-value');
